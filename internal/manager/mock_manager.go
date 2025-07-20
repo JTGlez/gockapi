@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	configReader "github.com/JTGlez/gockapi/internal/config_reader"
@@ -51,7 +53,18 @@ func (m *MockManager) StartAll(ctx context.Context) error {
 		return fmt.Errorf("mock manager is already running")
 	}
 
-	services := []string{"this should be replaced with actual service names"}
+	pattern := filepath.Join(m.configPath, "*.json")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to list config files: %w", err)
+	}
+
+	services := []string{}
+	for _, file := range files {
+		base := filepath.Base(file)
+		serviceName := strings.TrimSuffix(base, filepath.Ext(base))
+		services = append(services, serviceName)
+	}
 
 	failedServices := []string{}
 

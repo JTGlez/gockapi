@@ -49,7 +49,7 @@ func (v ValidatorConfigImpl) Validate(config *configReader.ServiceConfig) error 
 	}
 
 	if len(config.Endpoints) == 0 {
-		fmt.Errorf("at least one endpoint must be configured")
+		return fmt.Errorf("at least one endpoint must be configured")
 	}
 
 	for endpointKey, endpointConfig := range config.Endpoints {
