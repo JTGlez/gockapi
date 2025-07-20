@@ -17,7 +17,7 @@ A powerful tool for spinning up mock HTTP servers from JSON configurations. gock
 
 ## Installation
 
-### Build and Install Locally
+### Build and Install Locally (Detached mode)
 
 ```bash
 # Build the binary and place it in your Go bin directory
@@ -38,6 +38,12 @@ export PATH=$PATH:~/go/bin
 To make this permanent, add the above line to your `~/.bashrc` or `~/.profile`.
 
 ---
+
+### As dependency (Attached mode)
+
+```bash
+go get github.com/JTGlez/gockapi@v0.0.1
+```
 
 ## Configuration
 
