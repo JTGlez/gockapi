@@ -8,7 +8,7 @@ A CLI tool for setting up local mock servers using JSON configuration files.
 - Spin up local mock servers for API development and testing
 - Define endpoints, responses, and ports via simple JSON files
 - Start all or individual mock services from a directory
-- Hot-reload support for configuration changes
+- Hot-reload support for configuration changes (no manual reload needed)
 
 ---
 
@@ -43,6 +43,12 @@ To make this change permanent, add the above line to your `~/.bashrc` or `~/.pro
 ```bash
 gockapi --help
 ```
+
+### Check Status of Services
+```bash
+gockapi --config-path ./my-configs status
+```
+- This will print the status of all services defined in your config directory, including their health and port information.
 
 ---
 
@@ -159,6 +165,7 @@ gockapi --config-path ./my-configs stop serviceA
 gockapi --config-path ./my-configs stop serviceB
 gockapi --config-path ./my-configs stop serviceC
 ```
+- This approach allows for true independent lifecycle management of your mock servers.
 
 ---
 
@@ -207,7 +214,6 @@ gockapi --config-path ./my-configs start serviceA serviceB
 - `start <service>` — Start a specific service by name (without `.json`)
 - `stop-all` — Stop all running mock servers (stateless, scans all configs)
 - `stop <service>` — Stop a specific service
-- `reload <service>` — Reload configuration for a service
 - `status` — Show status of all services
 
 ---

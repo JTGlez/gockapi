@@ -8,7 +8,7 @@
         "Content-Type": "application/json"
       },
       "body": {
-        "message": "Hello from serviceA!"
+        "message": "Hello from service lolo!"
       }
     }
   }

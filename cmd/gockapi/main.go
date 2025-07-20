@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -134,10 +134,37 @@ func main() {
 			}
 		}
 	case "status":
-		status := mgr.GetStatus()
-		data, _ := json.MarshalIndent(status, "", "  ")
-		os.Stdout.Write(data)
-		os.Stdout.Write([]byte("\n"))
+		files, err := filepath.Glob(filepath.Join(*configPath, "*.json"))
+		if err != nil {
+			log.Fatalf("failed to list config files: %v", err)
+		}
+		if len(files) == 0 {
+			log.Println("No service configs found.")
+			return
+		}
+		running := []string{}
+		for _, file := range files {
+			serviceName := filepath.Base(file)
+			serviceName = serviceName[:len(serviceName)-len(filepath.Ext(serviceName))]
+			cfg, cfgErr := mgr.GetConfigReader().ReadServiceConfig(serviceName)
+			if cfgErr != nil {
+				continue
+			}
+			address := net.JoinHostPort("localhost", fmt.Sprint(cfg.Port))
+			conn, err := net.DialTimeout("tcp", address, 200*time.Millisecond)
+			if err == nil {
+				running = append(running, fmt.Sprintf("%s (port %d)", serviceName, cfg.Port))
+				conn.Close()
+			}
+		}
+		if len(running) == 0 {
+			log.Println("No running mock servers found.")
+			return
+		}
+		log.Println("Running mock servers:")
+		for _, s := range running {
+			log.Println("  -", s)
+		}
 	default:
 		printUsage()
 	}
