@@ -1,222 +1,389 @@
 # gockapi
 
-A CLI tool for setting up local mock servers using JSON configuration files.
+A powerful tool for spinning up mock HTTP servers from JSON configurations. gockapi supports two modes of operation: **detached mode** (CLI tool) for standalone mock servers and **attached mode** (Go library) for programmatic control in tests.
 
 ---
 
 ## Features
-- Spin up local mock servers for API development and testing
-- Define endpoints, responses, and ports via simple JSON files
-- Start all or individual mock services from a directory
-- Hot-reload support for configuration changes (no manual reload needed)
+
+- 🚀 **Two Operation Modes**: CLI tool for standalone servers + Go library for tests
+- 📁 **JSON Configuration**: Define endpoints, responses, and ports via simple JSON files  
+- 🔄 **Flexible Deployment**: Start services individually or all at once
+- 🎯 **Stateless Management**: CLI discovers and manages services by port scanning
+- ⚡ **Zero Wait Time**: Attached mode blocks until servers are ready (no manual delays)
+- 🧹 **Clean Shutdown**: Reliable process management and port cleanup
 
 ---
 
 ## Installation
 
-### 1. Build and Install Locally
-
-You can build and install `gockapi` locally without needing a release:
+### Build and Install Locally
 
 ```bash
 # Build the binary and place it in your Go bin directory
- go build -o ~/go/bin/gockapi ./cmd/gockapi
+go build -o ~/go/bin/gockapi ./cmd/gockapi
 
 # Or use go install from the project root
- go install ./cmd/gockapi
+go install ./cmd/gockapi
 ```
 
-### 2. Add to PATH
+### Add to PATH
 
-Make sure your Go bin directory (usually `~/go/bin`) is in your `PATH`:
+Make sure your Go bin directory is in your `PATH`:
 
 ```bash
 export PATH=$PATH:~/go/bin
 ```
-To make this change permanent, add the above line to your `~/.bashrc` or `~/.profile`.
+
+To make this permanent, add the above line to your `~/.bashrc` or `~/.profile`.
 
 ---
 
-## Usage
+## Configuration
 
-### Show Help
-```bash
-gockapi --help
+Create JSON configuration files for your mock services:
+
+**Example: `my-configs/userService.json`**
+```json
+{
+  "service_name": "userService",
+  "port": 8001,
+  "endpoints": {
+    "GET /api/users": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "users": [
+          {"id": 1, "name": "John Doe"},
+          {"id": 2, "name": "Jane Smith"}
+        ]
+      }
+    },
+    "POST /api/users": {
+      "status_code": 201,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "User created successfully"
+      }
+    }
+  }
+}
 ```
 
-### Check Status of Services
+---
+
+## Detached Mode (CLI Tool)
+
+Use gockapi as a standalone CLI tool for spinning up mock servers that run independently of your application.
+
+### Quick Start
+
 ```bash
+# Check status of all configured services
 gockapi --config-path ./my-configs status
-```
-- This will print the status of all services defined in your config directory, including their health and port information.
 
----
+# Start a specific service in the background
+gockapi --config-path ./my-configs start userService &
 
-## Example: Configure, Start, Use, and Stop a Mock Server
+# Test your mock server
+curl http://localhost:8001/api/users
 
-### 1. Create a Configuration File
-Create a directory for your configs (e.g., `my-configs`) and add a file named `serviceA.json`:
-
-```json
-{
-  "service_name": "serviceA",
-  "port": 55001,
-  "endpoints": {
-    "GET /api/hello": {
-      "status_code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "message": "Hello from serviceA!"
-      }
-    }
-  }
-}
-```
-
-### 2. Start the Mock Server in the Background
-```bash
-gockapi --config-path ./my-configs start serviceA &
-```
-- This will start the mock server for `serviceA` in the background.
-- You will see logs confirming the server is running.
-
-### 3. Make a Request to Your Mock Server
-```bash
-curl http://localhost:55001/api/hello
-```
-- You should receive a JSON response:
-  ```json
-  {"message":"Hello from serviceA!"}
-  ```
-
-### 4. Stop the Mock Server
-```bash
-gockapi --config-path ./my-configs stop serviceA
-```
-- This will terminate the running mock server for `serviceA`.
-
----
-
-## Running Multiple Services Independently
-
-You can run multiple mock services at the same time, each in its own process. This allows you to start, stop, and interact with each service independently.
-
-### 1. Create Multiple Configurations
-For example, add `serviceB.json` and `serviceC.json`:
-
-```json
-{
-  "service_name": "serviceB",
-  "port": 55002,
-  "endpoints": {
-    "GET /api/bye": {
-      "status_code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "message": "Goodbye from serviceB!"
-      }
-    }
-  }
-}
-```
-
-```json
-{
-  "service_name": "serviceC",
-  "port": 55003,
-  "endpoints": {
-    "GET /api/c": {
-      "status_code": 200,
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "message": "Hello from serviceC!"
-      }
-    }
-  }
-}
-```
-
-### 2. Start Each Service in Its Own Process
-```bash
-gockapi --config-path ./my-configs start serviceA &
-gockapi --config-path ./my-configs start serviceB &
-gockapi --config-path ./my-configs start serviceC &
-```
-- Each service will run in its own background process.
-- You can start as many as you want, each on its own port.
-
-### 3. Test Each Service Independently
-```bash
-curl http://localhost:55001/api/hello   # serviceA
-curl http://localhost:55002/api/bye     # serviceB
-curl http://localhost:55003/api/c       # serviceC
-```
-
-### 4. Stop a Specific Service Without Affecting Others
-```bash
-gockapi --config-path ./my-configs stop serviceA
-# serviceB and serviceC will keep running
-gockapi --config-path ./my-configs stop serviceB
-gockapi --config-path ./my-configs stop serviceC
-```
-- This approach allows for true independent lifecycle management of your mock servers.
-
----
-
-## Using `stop-all`: Statelessly Stop All Services
-
-You can stop all running mock servers in your config directory with a single command:
-
-```bash
+# Stop the service
 gockapi --config-path ./my-configs stop-all
 ```
 
-**How it works:**
-- The `stop-all` command is stateless: it scans all `*.json` config files in the target directory.
-- For each config, it reads the port and attempts to kill any process on that port started by the tool.
-- This works for servers started independently, even if you started them in separate shells or scripts.
-- You will see a log for each service indicating whether it was stopped or if no process was found.
+### CLI Commands
 
----
+| Command | Description |
+|---------|-------------|
+| `start-all` | Start all services in config directory (single process) |
+| `start <service>` | Start a specific service by name |
+| `stop-all` | Stop all running services (stateless port scanning) |
+| `stop <service>` | Stop a specific service |
+| `status` | Show status of all configured services |
 
-## Using `start-all`: All Services in a Single Process
+### Deployment Patterns
 
-You can also start all services in a directory at once using the `start-all` command:
-
+#### Pattern 1: Single Process (All Services Together)
 ```bash
-gockapi --config-path ./my-configs start-all
+# All services run in one process
+gockapi --config-path ./my-configs start-all &
+
+# Or start multiple specific services together
+gockapi --config-path ./my-configs start userService paymentService &
 ```
 
-**Important:**
-- When you use `start-all`, all mock servers are started within the same process and context.
-- If you terminate or stop one, you will terminate all of them at once.
-- This is useful for quick setups, but for independent control, use the approach described above (starting each service in its own process).
-
----
-
-## More Usage Examples
-
-### Start Multiple Services (if you want only some services in Single)
+#### Pattern 2: Separate Processes (Independent Services)
 ```bash
-gockapi --config-path ./my-configs start serviceA serviceB
+# Each service runs in its own process
+gockapi --config-path ./my-configs start userService &
+gockapi --config-path ./my-configs start paymentService &
+gockapi --config-path ./my-configs start notificationService &
+
+# Stop individual services without affecting others
+gockapi --config-path ./my-configs stop userService
+```
+
+#### Pattern 3: Stateless Management
+```bash
+# Stop all services regardless of how they were started
+gockapi --config-path ./my-configs stop-all
+
+# Works even if services were started in different shells or scripts
+# The tool scans ports from all config files and kills matching processes
+```
+
+### Example Workflow
+
+```bash
+# 1. Create your config directory
+mkdir my-configs
+
+# 2. Add service configurations (see Configuration section above)
+
+# 3. Start services
+gockapi --config-path ./my-configs start userService &
+gockapi --config-path ./my-configs start paymentService &
+
+# 4. Verify services are running
+gockapi --config-path ./my-configs status
+
+# 5. Test your services
+curl http://localhost:8001/api/users
+curl http://localhost:8002/api/payments
+
+# 6. Clean shutdown
+gockapi --config-path ./my-configs stop-all
 ```
 
 ---
 
-## Commands
-- `start-all` — Start all mock servers in the config directory (single process)
-- `start <service>` — Start a specific service by name (without `.json`)
-- `stop-all` — Stop all running mock servers (stateless, scans all configs)
-- `stop <service>` — Stop a specific service
-- `status` — Show status of all services
+## Attached Mode (Go Library)
+
+Use gockapi as a Go library for programmatic control of mock servers in your tests. Perfect for integration testing where you need reliable, fast mock server lifecycle management.
+
+### Installation
+
+```bash
+go get github.com/JTGlez/gockapi/pkg/gockapi
+```
+
+### Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "net/http"
+    "log"
+    
+    "github.com/JTGlez/gockapi/pkg/gockapi"
+)
+
+func main() {
+    // 1. Create manager pointing to your config directory
+    mgr := gockapi.NewManager("./my-configs")
+    defer mgr.StopAll() // Always clean up
+
+    // 2. Start a service - blocks until ready, no sleep needed!
+    ctx := context.Background()
+    err := mgr.StartService(ctx, "userService")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // 3. Test immediately - server is guaranteed ready
+    resp, err := http.Get("http://localhost:8001/api/users")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer resp.Body.Close()
+    
+    fmt.Printf("Status: %d\n", resp.StatusCode)
+    // 4. That's it! StopAll in defer handles cleanup
+}
+```
+
+### API Reference
+
+```go
+type Manager struct {
+    // Internal fields
+}
+
+// NewManager creates a new mock server manager
+func NewManager(configPath string) *Manager
+
+// StartAll starts all mock servers from the config directory
+// Blocks until all servers are ready to accept connections
+func (m *Manager) StartAll(ctx context.Context) error
+
+// StartService starts a single mock server by name
+// Blocks until the server is ready - you can immediately make requests
+func (m *Manager) StartService(ctx context.Context, name string) error
+
+// StopAll stops all running mock servers with clean shutdown
+func (m *Manager) StopAll() error
+
+// StopService stops a single mock server by name
+func (m *Manager) StopService(name string) error
+
+// GetRunningServices returns the names of currently running services
+func (m *Manager) GetRunningServices() []string
+```
+
+### Testing Patterns
+
+#### Pattern 1: Single Service Test
+```go
+func TestUserAPI(t *testing.T) {
+    mgr := gockapi.NewManager("./test-configs")
+    defer mgr.StopAll()
+
+    ctx := context.Background()
+    err := mgr.StartService(ctx, "userService")
+    if err != nil {
+        t.Fatalf("Failed to start service: %v", err)
+    }
+
+    // Test your code that depends on the mock service
+    resp, err := http.Get("http://localhost:8001/api/users")
+    if err != nil {
+        t.Fatalf("Request failed: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != 200 {
+        t.Errorf("Expected 200, got %d", resp.StatusCode)
+    }
+}
+```
+
+#### Pattern 2: Multiple Services Test
+```go
+func TestFullIntegration(t *testing.T) {
+    mgr := gockapi.NewManager("./test-configs")
+    defer mgr.StopAll()
+
+    ctx := context.Background()
+    
+    // Start all services at once
+    err := mgr.StartAll(ctx)
+    if err != nil {
+        t.Fatalf("Failed to start services: %v", err)
+    }
+
+    // Test complex scenarios involving multiple services
+    // All services are guaranteed to be ready
+    testUserWorkflow(t)
+    testPaymentWorkflow(t)
+    testNotificationWorkflow(t)
+}
+```
+
+#### Pattern 3: Table-Driven Tests
+```go
+func TestMockServices(t *testing.T) {
+    tests := []struct {
+        name     string
+        service  string
+        endpoint string
+        expect   int
+    }{
+        {"User API", "userService", "http://localhost:8001/api/users", 200},
+        {"Payment API", "paymentService", "http://localhost:8002/api/payments", 200},
+    }
+
+    for _, tc := range tests {
+        t.Run(tc.name, func(t *testing.T) {
+            mgr := gockapi.NewManager("./test-configs")
+            defer mgr.StopAll()
+
+            ctx := context.Background()
+            err := mgr.StartService(ctx, tc.service)
+            if err != nil {
+                t.Fatalf("Failed to start %s: %v", tc.service, err)
+            }
+
+            resp, err := http.Get(tc.endpoint)
+            if err != nil {
+                t.Fatalf("Request to %s failed: %v", tc.endpoint, err)
+            }
+            defer resp.Body.Close()
+
+            if resp.StatusCode != tc.expect {
+                t.Errorf("Expected %d, got %d", tc.expect, resp.StatusCode)
+            }
+        })
+    }
+}
+```
+
+## Advanced Configuration
+
+### Multiple Endpoints Per Service
+
+```json
+{
+  "service_name": "apiGateway",
+  "port": 8000,
+  "endpoints": {
+    "GET /health": {
+      "status_code": 200,
+      "body": {"status": "healthy"}
+    },
+    "GET /api/v1/users/:id": {
+      "status_code": 200,
+      "body": {"id": 1, "name": "John Doe"}
+    },
+    "POST /api/v1/users": {
+      "status_code": 201,
+      "headers": {"Location": "/api/v1/users/123"},
+      "body": {"message": "User created"}
+    },
+    "DELETE /api/v1/users/:id": {
+      "status_code": 204,
+      "body": ""
+    }
+  }
+}
+```
+
+### Error Responses
+
+```json
+{
+  "service_name": "errorService",
+  "port": 8080,
+  "endpoints": {
+    "GET /api/error": {
+      "status_code": 500,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "error": "Internal server error",
+        "code": "INTERNAL_ERROR"
+      }
+    },
+    "GET /api/notfound": {
+      "status_code": 404,
+      "body": {
+        "error": "Resource not found"
+      }
+    }
+  }
+}
+```
 
 ---
 
 ## License
+
 MIT

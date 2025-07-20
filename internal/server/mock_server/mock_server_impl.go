@@ -59,6 +59,9 @@ func (m *MockServerImpl) Start(ctx context.Context) error {
 		Handler: mux,
 	}
 
+	// Channel to signal when server is ready
+	ready := make(chan error, 1)
+
 	go func() {
 		if err := m.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			m.mu.Lock()
@@ -71,8 +74,33 @@ func (m *MockServerImpl) Start(ctx context.Context) error {
 			}
 			m.running = false
 			m.mu.Unlock()
+			ready <- err
 		}
 	}()
+
+	// Wait for server to actually start listening
+	go func() {
+		for i := 0; i < 50; i++ { // Try for up to 5 seconds
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", m.port), 100*time.Millisecond)
+			if err == nil {
+				conn.Close()
+				ready <- nil
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		ready <- fmt.Errorf("server %s failed to start listening on port %d within timeout", m.serviceName, m.port)
+	}()
+
+	// Wait for either success or failure
+	select {
+	case err := <-ready:
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
 	m.running = true
 	m.healthStatus = HealthStatus{
@@ -85,8 +113,6 @@ func (m *MockServerImpl) Start(ctx context.Context) error {
 		},
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-
-	time.Sleep(100 * time.Millisecond)
 
 	return nil
 }
