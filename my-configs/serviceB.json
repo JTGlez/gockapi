@@ -1,0 +1,15 @@
+{
+  "service_name": "serviceB",
+  "port": 55002,
+  "endpoints": {
+    "GET /api/bye": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "Goodbye from serviceB!"
+      }
+    }
+  }
+} 

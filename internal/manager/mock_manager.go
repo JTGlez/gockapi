@@ -297,3 +297,7 @@ func (m *MockManager) handleConfigChange(serviceName string) {
 		log.Printf("✅ Hot reload successful for service %s\n", serviceName)
 	}
 }
+
+func (m *MockManager) GetConfigReader() configReader.ConfigReader {
+	return m.configReader
+}
