@@ -1,0 +1,19 @@
+{
+  "service_name": "my-mock-service",
+  "port": 55001,
+  "endpoints": {
+    "GET /api/mock": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "This is a mock response!",
+        "data": {
+          "id": 1,
+          "name": "Mock Data"
+        }
+      }
+    }
+  }
+} 
